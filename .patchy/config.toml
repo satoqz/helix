@@ -1,0 +1,11 @@
+repo          = "helix-editor/helix"
+remote-branch = "master"
+local-branch  = "patchy"
+
+pull-requests = [
+  "11695", # match next/prev char pairs
+  "12923", # better `:move`
+  "13307", # termina
+]
+
+patches = []
