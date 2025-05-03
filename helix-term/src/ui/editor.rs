@@ -79,12 +79,10 @@ impl EditorView {
         editor: &Editor,
         doc: &Document,
         view: &View,
-        viewport: Rect,
         surface: &mut Surface,
         is_focused: bool,
     ) {
         let inner = view.inner_area(doc);
-        let area = view.area;
         let theme = &editor.theme;
         let config = editor.config();
         let loader = editor.syn_loader.load();
@@ -195,18 +193,6 @@ impl EditorView {
             theme,
             decorations,
         );
-
-        // if we're not at the edge of the screen, draw a right border
-        if viewport.right() != view.area.right() {
-            let x = area.right();
-            let border_style = theme.get("ui.window");
-            for y in area.top()..area.bottom() {
-                surface[(x, y)]
-                    .set_symbol(tui::symbols::line::VERTICAL)
-                    //.set_symbol(" ")
-                    .set_style(border_style);
-            }
-        }
 
         if config.inline_diagnostics.disabled()
             && config.end_of_line_diagnostics == DiagnosticFilter::Disable
@@ -1516,7 +1502,7 @@ impl Component for EditorView {
 
         for (view, is_focused) in cx.editor.tree.views() {
             let doc = cx.editor.document(view.doc).unwrap();
-            self.render_view(cx.editor, doc, view, area, surface, is_focused);
+            self.render_view(cx.editor, doc, view, surface, is_focused);
         }
 
         if config.auto_info {
