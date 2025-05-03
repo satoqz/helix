@@ -25,7 +25,9 @@ pub fn overlaid<T>(content: T) -> Overlay<T> {
 
 fn clip_rect_relative(rect: Rect, percent_horizontal: u8, percent_vertical: u8) -> Rect {
     fn mul_and_cast(size: u16, factor: u8) -> u16 {
-        ((size as u32) * (factor as u32) / 100).try_into().unwrap()
+        ((size as u32) * (factor as u32) / 100 / 2 * 2)
+            .try_into()
+            .unwrap()
     }
 
     let inner_w = mul_and_cast(rect.width, percent_horizontal);
