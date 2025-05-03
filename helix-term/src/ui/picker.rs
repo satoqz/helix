@@ -23,7 +23,7 @@ use tui::{
     buffer::Buffer as Surface,
     layout::Constraint,
     text::{Span, Spans},
-    widgets::{Block, BorderType, Cell, Row, Table},
+    widgets::{Block, BorderType, Borders, Cell, Row, Table},
 };
 
 use tui::widgets::Widget;
@@ -700,12 +700,17 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
         surface.clear_with(area, background);
 
         let border_type = BorderType::new(cx.editor.config().rounded_corners);
-        let block: Block<'_> = Block::bordered().border_type(border_type);
+        let borders = Borders::TOP | Borders::BOTTOM | Borders::LEFT;
+        let block: Block<'_> = Block::new().borders(borders).border_type(border_type);
 
         // calculate the inner area inside the box
         let inner = block.inner(area);
 
         block.render(area, surface);
+
+        let line_symbols = BorderType::line_symbols(border_type);
+        surface[(area.x, (area.top() + 2).min(area.bottom()))]
+            .set_symbol(&line_symbols.vertical_right);
 
         // -- Render the input bar:
 
@@ -881,6 +886,34 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
         );
     }
 
+    fn render_separator(&self, area: Rect, preview: bool, surface: &mut Surface, cx: &mut Context) {
+        let background = cx.editor.theme.get("ui.background");
+        surface.clear_with(area, background);
+
+        let border_type = BorderType::new(cx.editor.config().rounded_corners);
+        let line_symbols = BorderType::line_symbols(border_type);
+
+        let style = Style::new();
+
+        for y in area.top()..area.bottom() {
+            surface[(area.x, y)]
+                .set_symbol(&line_symbols.vertical)
+                .set_style(style);
+        }
+
+        let corners = if preview {
+            (&line_symbols.horizontal_down, &line_symbols.horizontal_up)
+        } else {
+            (&line_symbols.top_right, &line_symbols.bottom_right)
+        };
+
+        surface[(area.x, area.top())].set_symbol(corners.0);
+        surface[(area.x, area.bottom().max(1) - 1)].set_symbol(corners.1);
+
+        surface[(area.x, (area.top() + 2).min(area.bottom()))]
+            .set_symbol(&line_symbols.vertical_left);
+    }
+
     fn render_preview(&mut self, area: Rect, surface: &mut Surface, cx: &mut Context) {
         // -- Render the frame:
         // clear area
@@ -890,7 +923,8 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
         surface.clear_with(area, background);
 
         let border_type = BorderType::new(cx.editor.config().rounded_corners);
-        let block: Block<'_> = Block::bordered().border_type(border_type);
+        let borders = Borders::TOP | Borders::BOTTOM | Borders::RIGHT;
+        let block: Block<'_> = Block::new().borders(borders).border_type(border_type);
 
         // calculate the inner area inside the box
         let inner = block.inner(area);
@@ -1028,12 +1062,14 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
 
 impl<I: 'static + Send + Sync, D: 'static + Send + Sync> Component for Picker<I, D> {
     fn render(&mut self, area: Rect, surface: &mut Surface, cx: &mut Context) {
-        // +---------+ +---------+
-        // |prompt   | |preview  |
-        // +---------+ |         |
-        // |picker   | |         |
-        // |         | |         |
-        // +---------+ +---------+
+        // +---------+---------+
+        // | prompt  | preview |
+        // +---------+         |
+        // | picker  |         |
+        // |         |         |
+        // +---------+---------+
+        //           ^
+        //           separator
 
         let render_preview =
             self.show_preview && self.file_fn.is_some() && area.width > MIN_AREA_WIDTH_FOR_PREVIEW;
@@ -1041,14 +1077,17 @@ impl<I: 'static + Send + Sync, D: 'static + Send + Sync> Component for Picker<I,
         let picker_width = if render_preview {
             area.width / 2
         } else {
-            area.width
+            area.width - 1
         };
 
         let picker_area = area.with_width(picker_width);
         self.render_picker(picker_area, surface, cx);
 
+        let separator_area = area.clip_left(picker_width).with_width(1);
+        self.render_separator(separator_area, render_preview, surface, cx);
+
         if render_preview {
-            let preview_area = area.clip_left(picker_width);
+            let preview_area = area.clip_left(picker_width + 1);
             self.render_preview(preview_area, surface, cx);
         }
     }
