@@ -389,12 +389,18 @@ impl Default for Keymaps {
 
 /// Merge default config keys with user overwritten keys for custom user config.
 pub fn merge_keys(dst: &mut HashMap<Mode, KeyTrie>, mut delta: HashMap<Mode, KeyTrie>) {
-    for (mode, keys) in dst {
-        keys.merge_nodes(
-            delta
-                .remove(mode)
-                .unwrap_or_else(|| KeyTrie::Node(KeyTrieNode::default())),
-        )
+    for mode in &[Mode::Normal, Mode::Select, Mode::Insert] {
+        match (dst.get_mut(mode), delta.remove(mode), mode) {
+            (Some(mode_dst), Some(mode_delta), Mode::Normal) => {
+                mode_dst.merge_nodes(mode_delta.clone());
+                // Mirror user-defined normal mode mappings into select mode.
+                if let Some(select_dst) = dst.get_mut(&Mode::Select) {
+                    select_dst.merge_nodes(mode_delta);
+                }
+            }
+            (Some(mode_dst), Some(mode_delta), _) => mode_dst.merge_nodes(mode_delta),
+            _ => {}
+        }
     }
 }
 
