@@ -278,7 +278,8 @@ pub fn find_paths(
     match_single_file: bool,
 ) -> impl Iterator<Item = Range<usize>> + '_ {
     let regex = if match_single_file {
-        static REGEX: Lazy<Regex> = Lazy::new(|| compile_path_regex("", "", true, cfg!(windows)));
+        static REGEX: Lazy<Regex> =
+            Lazy::new(|| compile_path_regex("", "(\\:[1-9]\\d*){0,2}", true, cfg!(windows)));
         &*REGEX
     } else {
         static REGEX: Lazy<Regex> = Lazy::new(|| compile_path_regex("", "", false, cfg!(windows)));
