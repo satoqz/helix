@@ -6,7 +6,7 @@ pub use dap::*;
 use futures_util::FutureExt;
 use helix_event::status;
 use helix_stdx::{
-    path::{self, find_paths},
+    path::find_paths,
     rope::{self, RopeSliceExt},
 };
 use helix_vcs::{FileChange, Hunk};
@@ -1318,10 +1318,6 @@ fn goto_file_impl(cx: &mut Context, action: Action) {
     let text = doc.text().slice(..);
     let selections = doc.selection(view.id);
     let primary = selections.primary();
-    let rel_path = doc
-        .relative_path()
-        .map(|path| path.parent().unwrap().to_path_buf())
-        .unwrap_or_default();
 
     let paths: Vec<_> = if selections.len() == 1 && primary.len() == 1 {
         // Cap the search at roughly 1k bytes around the cursor.
@@ -1355,18 +1351,30 @@ fn goto_file_impl(cx: &mut Context, action: Action) {
 
     for sel in paths {
         if let Ok(url) = Url::parse(&sel) {
-            open_url(cx, url, action);
-            continue;
+            // Complete and utter abuse.
+            if !url.cannot_be_a_base() {
+                open_url(cx, url, action);
+                continue;
+            }
         }
 
-        let path = path::expand(&sel);
-        let path = &rel_path.join(path);
+        let (path, pos) = crate::args::parse_file(&sel);
+
         if path.is_dir() {
-            let picker = ui::file_picker(cx.editor, path.into());
+            let picker = ui::file_picker(cx.editor, path.into()).with_default_action(action);
             cx.push_layer(Box::new(overlaid(picker)));
-        } else if let Err(e) = cx.editor.open(path, action) {
-            cx.editor.set_error(format!("Open file failed: {:?}", e));
+            return;
         }
+
+        if let Err(e) = cx.editor.open(&path, action) {
+            cx.editor.set_error(format!("Open file failed: {:?}", e));
+            return;
+        }
+
+        let (view, doc) = current!(cx.editor);
+        let pos = Selection::point(pos_at_coords(doc.text().slice(..), pos, true));
+        doc.set_selection(view.id, pos);
+        align_view(doc, view, Align::Center);
     }
 }
 
