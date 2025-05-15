@@ -43,6 +43,7 @@ use crate::ui::{Prompt, PromptEvent};
 use helix_core::{
     char_idx_at_visual_offset, fuzzy::MATCHER, movement::Direction,
     text_annotations::TextAnnotations, unicode::segmentation::UnicodeSegmentation, Position,
+    Selection, Transaction,
 };
 use helix_view::{
     editor::Action,
@@ -1031,6 +1032,46 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
             );
         }
     }
+
+    fn quickfix(&self, cx: &mut Context) -> anyhow::Result<()> {
+        let Some(file_fn) = self.file_fn.as_ref() else {
+            anyhow::bail!("Picker does not support quickfix list");
+        };
+
+        let snapshot = self.matcher.snapshot();
+        let list = snapshot
+            .matched_items(0..snapshot.matched_item_count())
+            .filter_map(|item| file_fn(cx.editor, item.data))
+            .filter_map(|(doc, loc)| {
+                let format = |path| {
+                    Some(match loc {
+                        None => format!("{path}"),
+                        Some((_, line)) => format!("{path}:{}", line + 1),
+                    })
+                };
+
+                match doc {
+                    PathOrId::Path(path) => {
+                        format(helix_stdx::path::get_relative_path(path).to_str()?)
+                    }
+                    PathOrId::Id(id) => {
+                        format(cx.editor.documents.get(&id)?.relative_path()?.to_str()?)
+                    }
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        cx.editor.new_file(Action::Replace);
+        let (view, doc) = current!(cx.editor);
+
+        let transaction =
+            Transaction::change(doc.text(), std::iter::once((0, 0, Some(list.into()))));
+        doc.apply(&transaction, view.id);
+        doc.set_selection(view.id, Selection::single(0, 0));
+
+        Ok(())
+    }
 }
 
 impl<I: 'static + Send + Sync, D: 'static + Send + Sync> Component for Picker<I, D> {
@@ -1172,6 +1213,13 @@ impl<I: 'static + Send + Sync, D: 'static + Send + Sync> Component for Picker<I,
             }
             ctrl!('t') => {
                 self.toggle_preview();
+            }
+            ctrl!('q') => {
+                if let Err(err) = self.quickfix(ctx) {
+                    ctx.editor.set_error(err.to_string());
+                } else {
+                    return close_fn(self);
+                }
             }
             _ => {
                 self.prompt_handle_event(event, ctx);
