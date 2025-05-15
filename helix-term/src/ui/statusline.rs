@@ -336,14 +336,12 @@ where
 {
     let selection = context.doc.selection(context.view.id);
     let count = selection.len();
-    write(
-        context,
-        if count == 1 {
-            " 1 sel ".into()
-        } else {
-            format!(" {}/{count} sels ", selection.primary_index() + 1).into()
-        },
-    );
+    if count > 1 {
+        write(
+            context,
+            format!(" {}/{count} sels ", selection.primary_index() + 1).into(),
+        );
+    }
 }
 
 fn render_primary_selection_length<'a, F>(context: &mut RenderContext<'a>, write: F)
