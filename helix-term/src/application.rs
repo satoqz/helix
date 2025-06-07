@@ -748,6 +748,17 @@ impl Application {
         };
 
         if should_redraw && !self.editor.should_close() {
+            // Handling an event may queue up a callback that needs little to no
+            // async processing and is already completed before event handling
+            // itself completes. Check for such callbacks and include their
+            // effects in this render.
+            while let Ok(callback) = self.jobs.callbacks.try_recv() {
+                self.jobs.handle_callback(
+                    &mut self.editor,
+                    &mut self.compositor,
+                    Ok(Some(callback)),
+                );
+            }
             self.render().await;
         }
     }
