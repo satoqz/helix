@@ -664,6 +664,13 @@ impl Application {
         };
 
         if should_redraw && !self.editor.should_close() {
+            while let Ok(callback) = self.jobs.callbacks.try_recv() {
+                self.jobs.handle_callback(
+                    &mut self.editor,
+                    &mut self.compositor,
+                    Ok(Some(callback)),
+                );
+            }
             self.render().await;
         }
     }
