@@ -2498,6 +2498,29 @@ fn clear_register(
     Ok(())
 }
 
+fn write_to_register(
+    cx: &mut compositor::Context,
+    args: Args,
+    event: PromptEvent,
+) -> anyhow::Result<()> {
+    if event != PromptEvent::Validate {
+        return Ok(());
+    }
+
+    ensure!(
+        args.len() == 2,
+        format!("Expected exactly 2 arguments, got {}", args.len())
+    );
+
+    ensure!(
+        args[0].chars().count() == 1,
+        format!("Invalid register {}", &args[0])
+    );
+
+    let register = args[0].chars().next().unwrap_or_default();
+    cx.editor.registers.write(register, vec![args[1].into()])
+}
+
 fn redraw(cx: &mut compositor::Context, _args: Args, event: PromptEvent) -> anyhow::Result<()> {
     if event != PromptEvent::Validate {
         return Ok(());
@@ -3591,6 +3614,18 @@ pub const TYPABLE_COMMAND_LIST: &[TypableCommand] = &[
         completer: CommandCompleter::all(completers::register),
         signature: Signature {
             positionals: (0, Some(1)),
+            ..Signature::DEFAULT
+        },
+    },
+    TypableCommand {
+        name: "write-to-register",
+        aliases: &[],
+        doc: "Writes a value to a register.",
+        fun: write_to_register,
+        completer: CommandCompleter::positional(&[completers::register, completers::none]),
+        signature: Signature {
+            positionals: (2, Some(2)),
+            raw_after: Some(1),
             ..Signature::DEFAULT
         },
     },
