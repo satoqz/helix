@@ -14,7 +14,6 @@ use crate::{
 };
 
 use helix_core::{
-    diagnostic::NumberOrString,
     graphemes::{next_grapheme_boundary, prev_grapheme_boundary},
     movement::Direction,
     syntax::{self, OverlayHighlights},
@@ -23,7 +22,6 @@ use helix_core::{
     visual_offset_from_block, Change, Position, Range, Selection, Transaction,
 };
 use helix_view::{
-    annotations::diagnostics::DiagnosticFilter,
     document::{Mode, SCRATCH_BUFFER_NAME},
     editor::{CompleteAction, CursorShapeConfig},
     graphics::{Color, CursorKind, Modifier, Rect, Style},
@@ -33,7 +31,7 @@ use helix_view::{
 };
 use std::{mem::take, num::NonZeroUsize, ops, path::PathBuf, rc::Rc};
 
-use tui::{buffer::Buffer as Surface, text::Span};
+use tui::buffer::Buffer as Surface;
 
 pub struct EditorView {
     pub keymaps: Keymaps,
@@ -218,12 +216,6 @@ impl EditorView {
                     //.set_symbol(" ")
                     .set_style(border_style);
             }
-        }
-
-        if config.inline_diagnostics.disabled()
-            && config.end_of_line_diagnostics == DiagnosticFilter::Disable
-        {
-            Self::render_diagnostics(doc, view, inner, surface, theme);
         }
 
         let statusline_area = view
@@ -707,69 +699,6 @@ impl EditorView {
 
             offset += width as u16;
         }
-    }
-
-    pub fn render_diagnostics(
-        doc: &Document,
-        view: &View,
-        viewport: Rect,
-        surface: &mut Surface,
-        theme: &Theme,
-    ) {
-        use helix_core::diagnostic::Severity;
-        use tui::{
-            layout::Alignment,
-            text::Text,
-            widgets::{Paragraph, Widget, Wrap},
-        };
-
-        let cursor = doc
-            .selection(view.id)
-            .primary()
-            .cursor(doc.text().slice(..));
-
-        let diagnostics = doc.diagnostics().iter().filter(|diagnostic| {
-            diagnostic.range.start <= cursor && diagnostic.range.end >= cursor
-        });
-
-        let warning = theme.get("warning");
-        let error = theme.get("error");
-        let info = theme.get("info");
-        let hint = theme.get("hint");
-
-        let mut lines = Vec::new();
-        let background_style = theme.get("ui.background");
-        for diagnostic in diagnostics {
-            let style = Style::reset()
-                .patch(background_style)
-                .patch(match diagnostic.severity {
-                    Some(Severity::Error) => error,
-                    Some(Severity::Warning) | None => warning,
-                    Some(Severity::Info) => info,
-                    Some(Severity::Hint) => hint,
-                });
-            let text = Text::styled(&diagnostic.message, style);
-            lines.extend(text.lines);
-            let code = diagnostic.code.as_ref().map(|x| match x {
-                NumberOrString::Number(n) => format!("({n})"),
-                NumberOrString::String(s) => format!("({s})"),
-            });
-            if let Some(code) = code {
-                let span = Span::styled(code, style);
-                lines.push(span.into());
-            }
-        }
-
-        let text = Text::from(lines);
-        let paragraph = Paragraph::new(&text)
-            .alignment(Alignment::Right)
-            .wrap(Wrap { trim: true });
-        let width = 100.min(viewport.width);
-        let height = 15.min(viewport.height);
-        paragraph.render(
-            Rect::new(viewport.right() - width, viewport.y + 1, width, height),
-            surface,
-        );
     }
 
     /// Apply the highlighting on the lines where a cursor is active

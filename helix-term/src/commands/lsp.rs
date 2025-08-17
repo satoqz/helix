@@ -1089,6 +1089,71 @@ pub fn hover(cx: &mut Context) {
     });
 }
 
+pub fn hover_diagnostics(cx: &mut Context) {
+    let (view, doc) = current_ref!(cx.editor);
+
+    let Some(document_diagnostics) = doc.uri().and_then(|uri| cx.editor.diagnostics.get(&uri))
+    else {
+        cx.editor.set_status("No diagnostics available.");
+        return;
+    };
+
+    let text = doc.text().slice(..);
+    let cursor_line = doc.selection(view.id).primary().cursor_line(text);
+
+    let mut line_diagnostics = document_diagnostics
+        .iter()
+        .map(|(diagnostic, _)| diagnostic)
+        .filter(|diagnostic| {
+            (diagnostic.range.start.line as usize) <= cursor_line
+                && (diagnostic.range.end.line as usize) >= cursor_line
+                && !diagnostic.message.trim().is_empty()
+        })
+        .collect::<Vec<_>>();
+
+    if line_diagnostics.is_empty() {
+        cx.editor.set_status("No diagnostics available.");
+        return;
+    }
+
+    line_diagnostics
+        .sort_by_key(|diagnostic| diagnostic.severity.unwrap_or(DiagnosticSeverity::HINT));
+
+    let mut contents = String::new();
+
+    for diagnostic in line_diagnostics {
+        let prefix = match diagnostic.severity {
+            Some(DiagnosticSeverity::ERROR) => "# Error",
+            Some(DiagnosticSeverity::WARNING) => "## Warning",
+            Some(DiagnosticSeverity::INFORMATION) => "### Info",
+            _ => "#### Hint",
+        };
+
+        contents.push_str(prefix);
+
+        if let Some(code) = &diagnostic.code {
+            contents.push_str(" (");
+            match code {
+                NumberOrString::String(s) => contents.push_str(&s),
+                NumberOrString::Number(n) => contents.push_str(&n.to_string()),
+            }
+            contents.push_str(")");
+        }
+
+        contents.push('\n');
+        contents.push_str(diagnostic.message.trim());
+        contents.push('\n');
+    }
+
+    let popup = Popup::new(
+        "diagnostics",
+        ui::Markdown::new(contents, cx.editor.syn_loader.clone()),
+    )
+    .auto_close(true);
+
+    cx.push_layer(Box::new(popup));
+}
+
 pub fn rename_symbol(cx: &mut Context) {
     fn get_prefill_from_word_boundary(editor: &Editor) -> String {
         let (view, doc) = current_ref!(editor);
