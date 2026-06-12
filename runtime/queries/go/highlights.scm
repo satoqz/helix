@@ -221,21 +221,4 @@
 
 ; Doc Comments
 (source_file
-  (comment) @comment.block.documentation . (comment)* . [
-    (package_clause) ; `package`
-    (type_declaration) ; `type`
-    (function_declaration) ; `func`
-    (method_declaration) ; `func`
-    (var_declaration) ; `var`
-    (const_declaration) ; `const`
-    ; var (
-    ; 	A = 1
-    ; 	B = 2
-    ; )
-    (var_spec)
-    ; const (
-    ; 	A = 1
-    ; 	B = 2
-    ; )
-    (const_spec)
-  ])
+  (comment) @comment.block.documentation)

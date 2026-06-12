@@ -10,24 +10,7 @@
 ; block comments. For line comments (which are more common),
 ; upstream changes to the grammar are required.
 (source_file
-  (comment) @injection.content . (comment)* . [
-    (package_clause) ; `package`
-    (type_declaration) ; `type`
-    (function_declaration) ; `func`
-    (method_declaration) ; `func`
-    (var_declaration) ; `var`
-    (const_declaration) ; `const`
-    ; var (
-    ; 	A = 1
-    ; 	B = 2
-    ; )
-    (var_spec)
-    ; const (
-    ; 	A = 1
-    ; 	B = 2
-    ; )
-    (const_spec)
-  ]
+  (comment) @injection.content .
   (#set! injection.language "markdown"))
 
 ((comment) @injection.content
