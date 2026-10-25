@@ -1,5 +1,4 @@
-# A port of Neovim's default dark color scheme created by echasnovski: https://github.com/neovim/neovim/pull/26334
-# Based on Kim Nørgaard's Neovim dark (accented) theme for Zed: https://github.com/KimNorgaard/zed-neovim-default
+# Neovim's default palette: https://github.com/neovim/neovim/blob/master/src/nvim/highlight_group.c
 
 attribute = "fog"
 keyword = { fg = "fog", modifiers = ["bold"] }
@@ -41,7 +40,7 @@ tabstop = { modifiers = ["italic"], bg = "panel"}
 "diff.minus" = "rose"
 "diff.delta" = "sun"
 
-"ui.background" = { bg = "night" }
+"ui.background" = { fg = "panel", bg = "night" }
 "ui.background.separator" = { fg = "panel" }
 "ui.linenr" = { fg = "slate" }
 "ui.linenr.selected" = { fg = "fog" }
@@ -65,14 +64,11 @@ tabstop = { modifiers = ["italic"], bg = "panel"}
 
 "ui.virtual.indent-guide" = { fg = "slate" }
 
-"ui.selection" = { bg = "oxford" }
-"ui.selection.primary" = { bg = "oxford" }
-"ui.cursor.select" = { bg = "aqua" }
-"ui.cursor.insert" = { bg = "fog" }
-"ui.cursor.primary.select" = { bg = "aqua" }
-"ui.cursor.primary.insert" = { bg = "fog" }
-"ui.cursor.match" = { fg = "night", bg = "slate" }
-"ui.cursor" = { modifiers = ["reversed"] }
+"ui.selection" = { bg = "slate" }
+"ui.selection.primary" = { bg = "slate" }
+"ui.cursor.match" = { bg = "slate", modifiers = ["bold"] }
+"ui.cursor" = { fg = "night", bg = "slate" }
+"ui.cursor.primary" = { fg = "night", bg = "stone" }
 "ui.cursorline.primary" = { bg = "panel" }
 "ui.highlight" = { bg = "panel" }
 "ui.highlight.frameline" = { bg = "slate" }
@@ -106,4 +102,3 @@ leaf   = "#b3f6c0"
 sun    = "#fce094"  
 rose   = "#ffc0b9"  
 sky    = "#a6dbff"
-oxford = "#0D2847" 

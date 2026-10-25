@@ -1,0 +1,16 @@
+# Neovim's default palette: https://github.com/neovim/neovim/blob/master/src/nvim/highlight_group.c
+
+inherits = "nvim-dark"
+
+[palette]
+fog   = "#14161b"
+stone = "#4f5258"
+night = "#e0e2ea"
+panel = "#c4c6cd"
+slate = "#9b9ea4"
+
+aqua = "#007373"
+leaf = "#005523"
+sun  = "#6b5300"
+rose = "#590008"
+sky  = "#004c73"
